@@ -4,6 +4,9 @@ import tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
 var mainMenu = tgbotapi.NewReplyKeyboard(
 	tgbotapi.NewKeyboardButtonRow(
+		tgbotapi.NewKeyboardButton(BtnBalanceUsdtTrc20),
+	),
+	tgbotapi.NewKeyboardButtonRow(
 		tgbotapi.NewKeyboardButton(BtnLivePriceWithText),
 		tgbotapi.NewKeyboardButton(BtnLivePriceWithPic),
 	),
@@ -22,6 +25,9 @@ var mainMenu = tgbotapi.NewReplyKeyboard(
 var mainMenuWithBack = tgbotapi.NewReplyKeyboard(
 	tgbotapi.NewKeyboardButtonRow(
 		tgbotapi.NewKeyboardButton(BtnHome),
+	),
+	tgbotapi.NewKeyboardButtonRow(
+		tgbotapi.NewKeyboardButton(BtnBalanceUsdtTrc20),
 	),
 	tgbotapi.NewKeyboardButtonRow(
 		tgbotapi.NewKeyboardButton(BtnLivePriceWithText),
@@ -69,3 +75,5 @@ var coinsMenuWithBack = tgbotapi.NewReplyKeyboard(
 		tgbotapi.NewKeyboardButton("XRP"),
 	),
 )
+
+var hamidMenu = tgbotapi.NewInlineKeyboardButtonData("hamid", "Hamid")

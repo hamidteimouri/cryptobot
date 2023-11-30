@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 )
 
 func getMsgWelcome(name string) string {
@@ -14,6 +15,9 @@ func getMsgBackToHome() string {
 
 func getMsgSelectYourCoin() string {
 	return "ارز مورد نظر خودتو انتخاب کن"
+}
+func getMsgEnterYourWalletAddress() string {
+	return "آدرس ولت خود را وارد کنید"
 }
 func getMsgEnterYourAmount() string {
 	return "مقدار مورد نظر خودتو وارد کن"
@@ -27,7 +31,20 @@ func getMsgTetherPrice() string {
 	if err != nil {
 		return "خطایی رخ داده است"
 	}
+	s1 := Format(r.Sell.Round(0).IntPart())
+	s2 := Format(r.Buy.Round(0).IntPart())
+	loc, _ := time.LoadLocation(TimeZoneTehran)
+	n := time.Now().In(loc).Format(time.RFC3339)
 
-	return fmt.Sprintf("قیمت تتر:\n\nخرید از سرمایکس: %s\nفروش به سرمایکس: %s", r.Sell.Round(0).String(), r.Buy.Round(0).String())
+	msg := `
+▫️خرید از سرمایکس: %s
+▫️فروش به سرمایکس: %s
+
+%s
+@sarmayex_finance
+`
+
+	//return fmt.Sprintf("قیمت تتر:\n\nخرید از سرمایکس: %s\nفروش به سرمایکس: %s \nپیج @sarmayex.finance", s1, s2)
+	return fmt.Sprintf(msg, s1, s2, n)
 
 }
