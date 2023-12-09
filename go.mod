@@ -3,6 +3,7 @@ module github.com/hamidteimouri/cryptobot
 go 1.19
 
 require (
+	github.com/SakoDroid/telego/v2 v2.1.0
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/hamidteimouri/gommon v0.0.7
 	github.com/shopspring/decimal v1.3.1

@@ -1,83 +1,58 @@
 package main
 
 import (
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"fmt"
+	bt "github.com/SakoDroid/telego/v2"
+	cfg "github.com/SakoDroid/telego/v2/configs"
+	objs "github.com/SakoDroid/telego/v2/objects"
 	"github.com/hamidteimouri/gommon/htenvier"
-	"log"
 	"strconv"
 )
 
 func main() {
-	bot, err := tgbotapi.NewBotAPI(htenvier.Env("BOT_TOKEN"))
+	apiToken := htenvier.Env("BOT_TOKEN")
+	bot, err := bt.NewBot(cfg.Default(apiToken))
+
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
-	bot.Debug = true
+	// The general update channel.
+	updateChannel := *(bot.GetUpdateChannel())
 
-	log.Printf("Authorized on account %s", bot.Self.UserName)
+	//Adding a handler. Everytime the bot receives message "hi" in a private chat, it will respond "hi to you too".
 
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
+	bot.AddHandler("/start", func(u *objs.Update) {
 
-	updates := bot.GetUpdatesChan(u)
+		//Create the custom keyboard.
+		kb := bot.CreateKeyboard(false, false, false, false, "nemidonam")
 
-	for update := range updates {
-		if update.Message == nil { // ignore non-Message updates
-			continue
+		//Add buttons to it. First argument is the button's text and the second one is the row number that the button will be added to it.
+		kb.AddButton("button1", 1)
+		kb.AddButton("button2", 1)
+		kb.AddButton("button3", 2)
+		kb.AddButton("button3", 2)
+		kb.AddButton("button3", 2)
+
+		//Sends the message along with the keyboard.
+		_, err := bot.AdvancedMode().ASendMessage(u.Message.Chat.Id, "hi to you too", "", u.Message.MessageId, 0, false, false, nil, false, false, kb)
+		if err != nil {
+			fmt.Println(err)
 		}
+	}, "private")
 
-		/*msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
+	// Monitores any other update. (Updates that don't contain text message "hi" in a private chat)
+	go func() {
+		for {
+			update := <-updateChannel
+			fmt.Println(update.Update_id)
 
-		switch update.Message.Text {
-		case "open":
-			msg.ReplyMarkup = numericKeyboard
-		case "close":
-			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
-
-		}*/
-
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
-
-		if update.Message.IsCommand() {
-			// Extract the command from the Message.
-			switch update.Message.Command() {
-			case "start":
-				msg.Text = getMsgWelcome(update.Message.Chat.FirstName)
-				msg.ReplyMarkup = mainMenu
-			case "back":
-				msg.Text = "I understand /sayhi and /status."
-				msg.ReplyMarkup = mainMenu
-			case "sayhi":
-				msg.Text = "Hi :)"
-			default:
-				msg.Text = "در حال پیاده سازی"
-			}
-		} else {
-			// Extract the command from the Message.
-			switch update.Message.Text {
-			case BtnHome:
-				msg.Text = getMsgBackToHome()
-				msg.ReplyMarkup = mainMenu
-			case BtnTetherPrice:
-				msg.Text = getMsgTetherPrice()
-				msg.ReplyMarkup = mainMenuWithBack
-			case BtnCalculator:
-				msg.Text = getMsgSelectYourCoin()
-				msg.ReplyMarkup = coinsMenuWithBack
-			case BtnBalanceUsdtTrc20:
-				msg.Text = getMsgEnterYourWalletAddress()
-				msg.ReplyMarkup = coinsMenuWithBack
-			default:
-				msg.Text = "در حال پیاده سازی امکانات"
-				msg.ReplyMarkup = mainMenu
-			}
+			//Some processing on the update
 		}
+	}()
 
-		if _, err := bot.Send(msg); err != nil {
-			log.Panic(err)
-		}
-	}
+	bot.Run(true)
+
 }
 func Format(n int64) string {
 	in := strconv.FormatInt(n, 10)
