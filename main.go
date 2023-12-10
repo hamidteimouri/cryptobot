@@ -1,57 +1,109 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	bt "github.com/SakoDroid/telego/v2"
 	cfg "github.com/SakoDroid/telego/v2/configs"
 	objs "github.com/SakoDroid/telego/v2/objects"
 	"github.com/hamidteimouri/gommon/htenvier"
+	"github.com/hamidteimouri/tronscansdk"
+	"github.com/sirupsen/logrus"
+	"regexp"
 	"strconv"
 )
 
+const (
+	ChatTypePrivate = "private"
+)
+
 func main() {
+	//var err error
+
 	apiToken := htenvier.Env("BOT_TOKEN")
 	bot, err := bt.NewBot(cfg.Default(apiToken))
 
 	if err != nil {
-		panic(err)
+		logrus.WithFields(logrus.Fields{
+			"err": err,
+		}).Panic("failed to initiate bot")
 	}
 
 	// The general update channel.
 	updateChannel := *(bot.GetUpdateChannel())
 
-	//Adding a handler. Everytime the bot receives message "hi" in a private chat, it will respond "hi to you too".
+	_ = bot.AddHandler("/start", func(u *objs.Update) {
+		kb := bot.CreateKeyboard(true, false, false, true, "nemidonam")
+		kb.AddButton(BtnTetherPrice, 1)
+		kb.AddButton(BtnBalanceUsdtTrc20, 1)
 
-	bot.AddHandler("/start", func(u *objs.Update) {
-
-		//Create the custom keyboard.
-		kb := bot.CreateKeyboard(false, false, false, false, "nemidonam")
-
-		//Add buttons to it. First argument is the button's text and the second one is the row number that the button will be added to it.
-		kb.AddButton("button1", 1)
-		kb.AddButton("button2", 1)
-		kb.AddButton("button3", 2)
-		kb.AddButton("button3", 2)
-		kb.AddButton("button3", 2)
-
-		//Sends the message along with the keyboard.
-		_, err := bot.AdvancedMode().ASendMessage(u.Message.Chat.Id, "hi to you too", "", u.Message.MessageId, 0, false, false, nil, false, false, kb)
+		_, err = bot.AdvancedMode().ASendMessage(u.Message.Chat.Id, getMsgWelcome(u.Message.Chat.FirstName), "",
+			u.Message.MessageId, 0,
+			false, false, nil, false, false, kb)
 		if err != nil {
-			fmt.Println(err)
+			logrus.WithFields(logrus.Fields{
+				"err": err,
+			}).Error("failed to send /start message")
 		}
-	}, "private")
+	}, ChatTypePrivate)
 
-	// Monitores any other update. (Updates that don't contain text message "hi" in a private chat)
+	_ = bot.AddHandler(BtnTetherPrice, func(u *objs.Update) {
+
+		// Sends the message along with the keyboard.
+		_, err = bot.SendMessage(u.Message.Chat.Id, getMsgTetherPrice(), "",
+			0, false,
+			false)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"err": err,
+			}).Error("failed to send btn-tether-price message")
+		}
+	}, ChatTypePrivate)
+
+	_ = bot.AddHandler(BtnBalanceUsdtTrc20, func(u *objs.Update) {
+
+		// Sends the message along with the keyboard.
+		_, err = bot.SendMessage(u.Message.Chat.Id, getMsgEnterYourWalletAddress(), "",
+			0, false,
+			false)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"err": err,
+			}).Error("failed to send btn-balance-wallet-trc20 message")
+		}
+	}, ChatTypePrivate)
+
 	go func() {
 		for {
 			update := <-updateChannel
 			fmt.Println(update.Update_id)
+			fmt.Println(update.Message.Text)
+
+			if IsTronAddress(update.Message.Text) {
+				usdt, err := tronscansdk.GetBalanceOfUsdt(context.Background(), update.Message.Text)
+				msg := ""
+				if err != nil {
+					msg = "خطایی رخ داده است"
+					logrus.WithFields(logrus.Fields{
+						"err": err,
+					}).Error("failed to get balance of wallet")
+				} else {
+					msg = usdt
+				}
+
+				bot.SendMessage(update.Message.Chat.Id, msg, "", update.Message.MessageId, false, false)
+			}
 
 			//Some processing on the update
 		}
 	}()
 
-	bot.Run(true)
+	err = bot.Run(true)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"err": err,
+		}).Error("failed to run bot")
+	}
 
 }
 func Format(n int64) string {
@@ -77,4 +129,16 @@ func Format(n int64) string {
 			out[j] = ','
 		}
 	}
+}
+
+const (
+	TronTrc20Pattern = "^T[1-9A-HJ-NP-Za-km-z]{33}$"
+)
+
+var (
+	TronRegex = regexp.MustCompile(TronTrc20Pattern)
+)
+
+func IsTronAddress(text string) bool {
+	return TronRegex.MatchString(text)
 }
